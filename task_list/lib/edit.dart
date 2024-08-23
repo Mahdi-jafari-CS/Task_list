@@ -22,9 +22,11 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   Widget build(BuildContext context) {
     final ThemeData themedata = Theme.of(context);
     return Scaffold(
+      backgroundColor: themedata.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: themedata.colorScheme.surface,
-        foregroundColor: themedata.colorScheme.onSurface,
+        elevation: 0,
+        backgroundColor:themedata.colorScheme.surface,
+        foregroundColor:Colors.black,
         title: const Text('Edit Tasks'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
