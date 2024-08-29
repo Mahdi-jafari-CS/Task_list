@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:task_list/data.dart';
+import 'package:provider/provider.dart';
+import 'package:task_list/data/data.dart';
+import 'package:task_list/data/repo/repository.dart';
 import 'package:task_list/main.dart';
 
 const taskBoxName = 'task';
@@ -16,7 +19,8 @@ class EditTaskScreen extends StatefulWidget {
 }
 
 class _EditTaskScreenState extends State<EditTaskScreen> {
-  final TextEditingController _controller = TextEditingController();
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.task.name);
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +29,8 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       backgroundColor: themedata.colorScheme.surface,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor:themedata.colorScheme.surface,
-        foregroundColor:Colors.black,
+        backgroundColor: themedata.colorScheme.surface,
+        foregroundColor: Colors.black,
         title: const Text('Edit Tasks'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
@@ -36,15 +40,10 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
           Icon(CupertinoIcons.check_mark)
         ]),
         onPressed: () {
-          final task = TaskEntity();
-          task.name = _controller.text;
-          task.priority = Priority.low;
-          if (task.isInBox) {
-            task.save();
-          } else {
-            final Box<TaskEntity> box = Hive.box(taskBoxName);
-            box.add(task);
-          }
+          widget.task.name = _controller.text;
+          widget.task.priority = widget.task.priority;
+          final repository = Provider.of<Repository<TaskEntity>>(context,listen: false);
+          repository.createOrUpdate(widget.task);
           Navigator.of(context).pop();
         },
       ),
@@ -57,40 +56,40 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
               children: [
                 Flexible(
                     child: PriorityCheckBox(
-                      ontap: (){
-                        setState(() {
-                          widget.task.priority = Priority.low;
-                        });
-                      },
+                        ontap: () {
+                          setState(() {
+                            widget.task.priority = Priority.low;
+                          });
+                        },
                         label: 'Low',
                         isSelected: widget.task.priority == Priority.low,
-                        color: Colors.green)),
+                        color: lowPriority)),
                 SizedBox(
                   width: 8,
                 ),
                 Flexible(
                     child: PriorityCheckBox(
-                      ontap: (){
-                        setState(() {
-                          widget.task.priority = Priority.medium;
-                        });
-                      },
+                        ontap: () {
+                          setState(() {
+                            widget.task.priority = Priority.medium;
+                          });
+                        },
                         label: 'Medium',
                         isSelected: widget.task.priority == Priority.medium,
-                        color: Colors.orange)),
+                        color: normalPriority)),
                 SizedBox(
                   width: 8,
                 ),
                 Flexible(
                     child: PriorityCheckBox(
-                      ontap: (){
-                        setState(() {
-                          widget.task.priority = Priority.high;
-                        });
-                      },
+                        ontap: () {
+                          setState(() {
+                            widget.task.priority = Priority.high;
+                          });
+                        },
                         label: 'High',
                         isSelected: widget.task.priority == Priority.high,
-                        color: Colors.red)),
+                        color: highPriority)),
                 SizedBox(
                   width: 8,
                 )
@@ -99,7 +98,13 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             TextField(
               controller: _controller,
               decoration: InputDecoration(
-                label: Text('Add task for today...',style: Theme.of(context).textTheme.bodyMedium!.apply(fontSizeFactor: 1.2),),
+                label: Text(
+                  'Add task for today...',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium!
+                      .apply(fontSizeFactor: 1.2),
+                ),
               ),
             )
           ],
@@ -118,7 +123,8 @@ class PriorityCheckBox extends StatelessWidget {
       {super.key,
       required this.label,
       required this.isSelected,
-      required this.color, required this.ontap});
+      required this.color,
+      required this.ontap});
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +140,12 @@ class PriorityCheckBox extends StatelessWidget {
         child: Stack(
           children: [
             Center(
-              child: Text(label),
+              child: Text(label,
+                  style: themeData.textTheme.bodyMedium!
+                      .apply(fontSizeFactor: 0.8)),
             ),
             Positioned(
-                right: 8,
+                right: 4,
                 top: 0,
                 bottom: 0,
                 child: Center(

@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:task_list/data.dart';
-import 'package:task_list/edit.dart';
+import 'package:provider/provider.dart';
+import 'package:task_list/data/data.dart';
+import 'package:task_list/data/repo/repository.dart';
+import 'package:task_list/data/source/hive_task_source.dart';
+import 'package:task_list/screens/home/home.dart';
 
 const taskBoxName = 'task';
 void main() async {
@@ -15,12 +18,17 @@ void main() async {
   await Hive.openBox<TaskEntity>(taskBoxName);
   SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(statusBarColor: primaryVariantColor));
-  runApp(const MyApp());
+  runApp(ChangeNotifierProvider<Repository<TaskEntity>>(
+    create: (context) => Repository(HiveTaskDataSource(Hive.box(taskBoxName))),
+    child: const MyApp()));
 }
 
 const Color primaryColor = Color(0xff794cff);
 const Color primaryVariantColor = Color(0xff5C0AFF);
 const secondaryTextColor = Color(0xffAFBED0);
+const normalPriority = Color(0xffF09819);
+const highPriority = primaryColor;
+const lowPriority = Color(0xff3BE1F1);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -36,6 +44,7 @@ class MyApp extends StatelessWidget {
           textTheme: GoogleFonts.poppinsTextTheme(const TextTheme(
               headlineSmall: TextStyle(fontWeight: FontWeight.bold))),
           inputDecorationTheme: const InputDecorationTheme(
+              floatingLabelBehavior: FloatingLabelBehavior.never,
               labelStyle: TextStyle(color: secondaryTextColor),
               iconColor: secondaryTextColor,
               border: InputBorder.none),
@@ -64,220 +73,6 @@ class MyApp extends StatelessWidget {
           ),
           useMaterial3: false,
         ),
-        home: const HomeScreen());
-  }
-}
-
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final box = Hive.box<TaskEntity>(taskBoxName);
-    final themedata = Theme.of(context);
-    return Scaffold(
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => EditTaskScreen(task: TaskEntity())));
-          },
-          label: const Row(
-              children: [Text('Create Task'), Icon(CupertinoIcons.add)]),
-        ),
-        body: Column(children: [
-          Container(
-            height: 130,
-            decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [
-              themedata.colorScheme.primary,
-              themedata.colorScheme.primaryContainer
-            ])),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 24, 12, 8),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Todo List',
-                        style: themedata.textTheme.headlineSmall!
-                            .apply(color: themedata.colorScheme.onPrimary),
-                      ),
-                      Icon(
-                        CupertinoIcons.share,
-                        color: themedata.colorScheme.onPrimary,
-                      )
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  Container(
-                    height: 38,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(19),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                          )
-                        ]),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        prefixIcon: Icon(CupertinoIcons.search),
-                        label: Text('Search Tasks'),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: ValueListenableBuilder<Box<TaskEntity>>(
-                valueListenable: box.listenable(),
-                builder: (context, box, child) {
-                  return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                      itemCount: box.values.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Today',
-                                      style: themedata.textTheme.headlineSmall!
-                                          .apply(fontSizeFactor: 0.8),
-                                    ),
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 4),
-                                      height: 3,
-                                      width: 70,
-                                      decoration: BoxDecoration(
-                                        borderRadius:
-                                            BorderRadius.circular(1.5),
-                                        color: primaryColor,
-                                      ),
-                                    )
-                                  ]),
-                              MaterialButton(
-                                color: const Color(0xffEAEFF5),
-                                textColor: secondaryTextColor,
-                                elevation: 0,
-                                onPressed: () {},
-                                child: const Row(
-                                  children: [
-                                    Text('Delete All'),
-                                    SizedBox(
-                                      width: 4,
-                                    ),
-                                    Icon(
-                                      CupertinoIcons.delete,
-                                      size: 18,
-                                    )
-                                  ],
-                                ),
-                              )
-                            ],
-                          );
-                        } else {
-                          final TaskEntity task =
-                              box.values.toList()[index - 1];
-                          return TaskItem(
-                            task: task,
-                          );
-                        }
-                      });
-                }),
-          ),
-        ]));
-  }
-}
-
-class TaskItem extends StatefulWidget {
-  const TaskItem({
-    super.key,
-    required this.task,
-  });
-
-  final TaskEntity task;
-
-  @override
-  State<TaskItem> createState() => _TaskItemState();
-}
-
-class _TaskItemState extends State<TaskItem> {
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData themeData = Theme.of(context);
-    return InkWell(
-      onTap: () {
-        setState(() {
-          widget.task.isCompleted = !widget.task.isCompleted;
-        });
-      },
-      child: Container(
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.only(left: 16, right: 16),
-        height: 84,
-        decoration: BoxDecoration(
-          color: themeData.colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(children: [
-          MyCheckbox(value: widget.task.isCompleted),
-          const SizedBox(
-            width: 16,
-          ),
-          Expanded(
-            child: Text(
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              widget.task.name,
-              style: TextStyle(
-                  fontSize: 16,
-                  decoration: widget.task.isCompleted
-                      ? TextDecoration.lineThrough
-                      : null),
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-class MyCheckbox extends StatelessWidget {
-  final bool value;
-
-  const MyCheckbox({super.key, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData themeData = Theme.of(context);
-    return Container(
-        height: 20,
-        width: 20,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border:
-              !value ? Border.all(color: secondaryTextColor, width: 2) : null,
-          color: value ? themeData.colorScheme.primary : null,
-        ),
-        child: value
-            ? Icon(
-                CupertinoIcons.check_mark,
-                size: 16,
-                color: themeData.colorScheme.onPrimary,
-              )
-            : null);
+        home: HomeScreen());
   }
 }
