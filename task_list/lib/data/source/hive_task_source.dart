@@ -43,7 +43,8 @@ class HiveTaskDataSource implements Datasource<TaskEntity> {
     if (searchKeyWord.isNotEmpty) {
       return box.values
           .where((element) => element.name.contains(searchKeyWord)).toList();
-    }else
-    return box.values.toList();
+    }else {
+      return box.values.toList();
+    }
   }
 }

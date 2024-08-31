@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+
 import 'package:provider/provider.dart';
 import 'package:task_list/data/data.dart';
 import 'package:task_list/data/repo/repository.dart';
 import 'package:task_list/main.dart';
+import 'package:task_list/screens/edit/cubit/edit_task_cubit.dart';
 import 'package:task_list/screens/edit/edit.dart';
 import 'package:task_list/screens/home/bloc/task_list_bloc.dart';
 import 'package:task_list/widgets.dart';
@@ -18,22 +19,26 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // final box = Hive.box<TaskEntity>(taskBoxName);
     final themedata = Theme.of(context);
     return BlocProvider(
       create: (context) => TaskListBloc(context.read<Repository<TaskEntity>>()),
       child: Scaffold(
-          floatingActionButtonLocation:
-              FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => EditTaskScreen(task: TaskEntity())));
-            },
-            label: const Row(
-                children: [Text('Create Task'), Icon(CupertinoIcons.add)]),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (context) => BlocProvider<EditTaskCubit>(
+                create: (context) => EditTaskCubit(TaskEntity(), context.read<Repository<TaskEntity>>()),
+                child: const EditTaskScreen(),
+              ),
+            ));
+          },
+          label: const Row(
+            children: [Text('Create Task'), Icon(CupertinoIcons.add)],
           ),
-          body: Column(children: [
+        ),
+        body: Column(
+          children: [
             Container(
               height: 130,
               decoration: BoxDecoration(
@@ -97,7 +102,6 @@ class HomeScreen extends StatelessWidget {
                   context.read<TaskListBloc>().add(TaskListStarted());
                   return BlocBuilder<TaskListBloc, TaskListState>(
                       builder: (context, state) {
-                        
                     if (state is TaskListSuccess) {
                       return TaskList(items: state.items, themedata: themedata);
                     } else if (state is TaskListEmpty) {
@@ -221,7 +225,11 @@ class _TaskItemState extends State<TaskItem> {
     return InkWell(
       onTap: () {
         Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => EditTaskScreen(task: widget.task)));
+            builder: (context) => BlocProvider<EditTaskCubit>(
+                  create: (context) => EditTaskCubit(
+                      widget.task, context.read<Repository<TaskEntity>>()),
+                  child: const EditTaskScreen(),
+                )));
       },
       onLongPress: () {
         widget.task.delete();

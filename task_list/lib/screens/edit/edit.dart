@@ -1,26 +1,33 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'package:provider/provider.dart';
+
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:task_list/data/data.dart';
-import 'package:task_list/data/repo/repository.dart';
+
 import 'package:task_list/main.dart';
+import 'package:task_list/screens/edit/cubit/edit_task_cubit.dart';
 
 const taskBoxName = 'task';
 
 class EditTaskScreen extends StatefulWidget {
-  EditTaskScreen({super.key, required this.task});
-
-  final TaskEntity task;
+  const EditTaskScreen({
+    super.key,
+  });
 
   @override
   State<EditTaskScreen> createState() => _EditTaskScreenState();
 }
 
 class _EditTaskScreenState extends State<EditTaskScreen> {
-  late final TextEditingController _controller =
-      TextEditingController(text: widget.task.name);
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    _controller = TextEditingController(
+        text: context.read<EditTaskCubit>().state.task.name);
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,15 +42,10 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton.extended(
-        label: Row(children: [
-          const Text('Create Task'),
-          Icon(CupertinoIcons.check_mark)
-        ]),
+        label: const Row(
+            children: [Text('Create Task'), Icon(CupertinoIcons.check_mark)]),
         onPressed: () {
-          widget.task.name = _controller.text;
-          widget.task.priority = widget.task.priority;
-          final repository = Provider.of<Repository<TaskEntity>>(context,listen: false);
-          repository.createOrUpdate(widget.task);
+          context.read<EditTaskCubit>().onSaveChangesClicked();
           Navigator.of(context).pop();
         },
       ),
@@ -51,52 +53,60 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Flex(
-              direction: Axis.horizontal,
-              children: [
-                Flexible(
-                    child: PriorityCheckBox(
-                        ontap: () {
-                          setState(() {
-                            widget.task.priority = Priority.low;
-                          });
-                        },
-                        label: 'Low',
-                        isSelected: widget.task.priority == Priority.low,
-                        color: lowPriority)),
-                SizedBox(
-                  width: 8,
-                ),
-                Flexible(
-                    child: PriorityCheckBox(
-                        ontap: () {
-                          setState(() {
-                            widget.task.priority = Priority.medium;
-                          });
-                        },
-                        label: 'Medium',
-                        isSelected: widget.task.priority == Priority.medium,
-                        color: normalPriority)),
-                SizedBox(
-                  width: 8,
-                ),
-                Flexible(
-                    child: PriorityCheckBox(
-                        ontap: () {
-                          setState(() {
-                            widget.task.priority = Priority.high;
-                          });
-                        },
-                        label: 'High',
-                        isSelected: widget.task.priority == Priority.high,
-                        color: highPriority)),
-                SizedBox(
-                  width: 8,
-                )
-              ],
+            BlocBuilder<EditTaskCubit, EditTaskState>(
+              builder: (context, state) {
+                final priority = state.task.priority;
+                return Flex(
+                  direction: Axis.horizontal,
+                  children: [
+                    Flexible(
+                        child: PriorityCheckBox(
+                            ontap: () {
+                              context
+                                  .read<EditTaskCubit>()
+                                  .onPriorityChanged(Priority.low);
+                            },
+                            label: 'Low',
+                            isSelected: priority == Priority.low,
+                            color: lowPriority)),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    Flexible(
+                        child: PriorityCheckBox(
+                            ontap: () {
+                              context
+                                  .read<EditTaskCubit>()
+                                  .onPriorityChanged(Priority.medium);
+                            },
+                            label: 'Medium',
+                            isSelected: priority == Priority.medium,
+                            color: normalPriority)),
+                    const SizedBox(
+                      width: 8,
+                    ),
+                    Flexible(
+                        child: PriorityCheckBox(
+                            ontap: () {
+                              context
+                                  .read<EditTaskCubit>()
+                                  .onPriorityChanged(Priority.high);
+                            },
+                            label: 'High',
+                            isSelected: priority == Priority.high,
+                            color: highPriority)),
+                    const SizedBox(
+                      width: 8,
+                    )
+                  ],
+                );
+              },
             ),
             TextField(
               controller: _controller,
+              onChanged: (value) {
+                context.read<EditTaskCubit>().onTextChanged(value);
+              },
               decoration: InputDecoration(
                 label: Text(
                   'Add task for today...',
@@ -162,7 +172,7 @@ class _MyCheckBoxShape extends StatelessWidget {
   final bool value;
   final Color color;
 
-  const _MyCheckBoxShape({super.key, required this.value, required this.color});
+  const _MyCheckBoxShape({ required this.value, required this.color});
 
   @override
   Widget build(BuildContext context) {

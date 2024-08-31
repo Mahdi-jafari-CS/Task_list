@@ -45,10 +45,10 @@ class EmptyState extends StatelessWidget {
           'assets/empty_state.svg',
           width: 120,
         ),
-        SizedBox(
+        const SizedBox(
           height: 12,
         ),
-        Text('Your task list is Empty dear'),
+        const Text('Your task list is Empty dear'),
       ],
     );
   }
